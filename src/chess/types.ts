@@ -31,6 +31,22 @@ export type Difficulty = 'easy' | 'medium';
 
 export type ViewMode = 'white' | 'black' | 'top' | 'free';
 
+export type GameMode = 'single' | 'hotseat';
+
+export type TimerDuration = 5 | 10 | 15;
+
+export interface HintArrow {
+  from: Position;
+  to: Position;
+  visible: boolean;
+}
+
+export interface Opening {
+  name: string;
+  nameEn: string;
+  moves: string[];
+}
+
 export interface GameState {
   board: (Piece | null)[][];
   currentTurn: PieceColor;
@@ -44,6 +60,18 @@ export interface GameState {
   promotionPending: { position: Position; color: PieceColor } | null;
   checkKingPosition: Position | null;
   capturedPieces: { white: Piece[]; black: Piece[] };
+  isReplayMode: boolean;
+  replayIndex: number;
+  gameMode: GameMode;
+  timerEnabled: boolean;
+  timerDuration: TimerDuration;
+  whiteTime: number;
+  blackTime: number;
+  timerActive: boolean;
+  hintArrow: HintArrow | null;
+  detectedOpening: Opening | null;
+  moveEvaluations: number[];
+  isRotating: boolean;
 }
 
 export const PIECE_VALUES: Record<PieceType, number> = {
@@ -91,3 +119,30 @@ export const createInitialBoard = (): (Piece | null)[][] => {
   
   return board;
 };
+
+export const createInitialGameState = (): GameState => ({
+  board: createInitialBoard(),
+  currentTurn: 'white',
+  gameStatus: 'playing',
+  moves: [],
+  selectedPiece: null,
+  validMoves: [],
+  viewMode: 'white',
+  difficulty: 'medium',
+  isAIThinking: false,
+  promotionPending: null,
+  checkKingPosition: null,
+  capturedPieces: { white: [], black: [] },
+  isReplayMode: false,
+  replayIndex: -1,
+  gameMode: 'single',
+  timerEnabled: false,
+  timerDuration: 10,
+  whiteTime: 10 * 60 * 1000,
+  blackTime: 10 * 60 * 1000,
+  timerActive: false,
+  hintArrow: null,
+  detectedOpening: null,
+  moveEvaluations: [],
+  isRotating: false,
+});
