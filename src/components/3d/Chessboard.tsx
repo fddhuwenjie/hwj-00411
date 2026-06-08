@@ -54,16 +54,37 @@ const Square: React.FC<SquareProps> = ({ row, col, isLight, isSelected, isValidM
       </mesh>
 
       {isValidMove && (
-        <mesh position={[0, 0.11, 0]}>
-          <cylinderGeometry args={[0.3, 0.3, 0.02, 32]} />
-          <meshStandardMaterial
-            color="#00ff00"
-            transparent
-            opacity={0.6}
-            emissive="#00ff00"
-            emissiveIntensity={0.5}
-          />
-        </mesh>
+        <group position={[0, 0.2, 0]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.32, 0.04, 16, 32]} />
+            <meshStandardMaterial
+              color="#00ff66"
+              transparent
+              opacity={0.85}
+              emissive="#00ff66"
+              emissiveIntensity={1.2}
+            />
+          </mesh>
+          <mesh position={[0, 0.05, 0]}>
+            <sphereGeometry args={[0.15, 16, 16]} />
+            <meshStandardMaterial
+              color="#00ff88"
+              transparent
+              opacity={0.4}
+              emissive="#00ff88"
+              emissiveIntensity={0.8}
+            />
+          </mesh>
+          <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.1, 0.25, 32]} />
+            <meshBasicMaterial
+              color="#00ff66"
+              transparent
+              opacity={0.5}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        </group>
       )}
 
       {isSelected && (

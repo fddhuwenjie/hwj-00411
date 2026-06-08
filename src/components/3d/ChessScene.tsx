@@ -29,7 +29,7 @@ const CameraController: React.FC<CameraControllerProps> = ({ viewMode }) => {
         targetTarget.current.set(0, 0, 0);
         break;
       case 'top':
-        targetPosition.current.set(0, 18, 0.01);
+        targetPosition.current.set(0, 18, 0.001);
         targetTarget.current.set(0, 0, 0);
         break;
       case 'free':
@@ -52,8 +52,8 @@ const CameraController: React.FC<CameraControllerProps> = ({ viewMode }) => {
       dampingFactor={0.05}
       minDistance={5}
       maxDistance={30}
-      maxPolarAngle={viewMode === 'top' ? Math.PI / 2 : Math.PI / 2.1}
-      minPolarAngle={viewMode === 'top' ? Math.PI / 2 : Math.PI / 6}
+      maxPolarAngle={viewMode === 'top' ? Math.PI / 12 : Math.PI / 2.1}
+      minPolarAngle={viewMode === 'top' ? 0 : Math.PI / 6}
       enablePan={false}
     />
   );
