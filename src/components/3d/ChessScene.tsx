@@ -20,11 +20,13 @@ const CameraController: React.FC<CameraControllerProps> = ({ viewMode, isRotatin
   const targetPosition = useRef(new THREE.Vector3(0, 10, 12));
   const targetTarget = useRef(new THREE.Vector3(0, 0, 0));
   const rotationProgress = useRef(0);
-  const startPosition = useRef(new THREE.Vector3());
+  const startSpherical = useRef(new THREE.Spherical());
+  const endSpherical = useRef(new THREE.Spherical());
   const startTarget = useRef(new THREE.Vector3());
-  const endPosition = useRef(new THREE.Vector3());
   const endTarget = useRef(new THREE.Vector3());
   const isAnimating = useRef(false);
+  const tempSpherical = useRef(new THREE.Spherical());
+  const tempVector = useRef(new THREE.Vector3());
 
   const getViewPositions = (mode: ViewMode) => {
     switch (mode) {
@@ -41,6 +43,16 @@ const CameraController: React.FC<CameraControllerProps> = ({ viewMode, isRotatin
     }
   };
 
+  const getPolarAngleLimits = () => {
+    if (isAnimating.current || isRotating) {
+      return { min: 0, max: Math.PI };
+    }
+    if (viewMode === 'top') {
+      return { min: 0, max: Math.PI / 12 };
+    }
+    return { min: Math.PI / 6, max: Math.PI / 2.1 };
+  };
+
   useEffect(() => {
     const positions = getViewPositions(viewMode);
     if (!positions) return;
@@ -48,9 +60,13 @@ const CameraController: React.FC<CameraControllerProps> = ({ viewMode, isRotatin
     if (isRotating && !isAnimating.current) {
       isAnimating.current = true;
       rotationProgress.current = 0;
-      startPosition.current.copy(camera.position);
+      
+      const startOffset = tempVector.current.copy(camera.position).sub(controlsRef.current?.target || new THREE.Vector3());
+      startSpherical.current.setFromVector3(startOffset);
       startTarget.current.copy(controlsRef.current?.target || new THREE.Vector3());
-      endPosition.current.copy(positions.pos);
+      
+      const endOffset = tempVector.current.copy(positions.pos).sub(positions.target);
+      endSpherical.current.setFromVector3(endOffset);
       endTarget.current.copy(positions.target);
     } else if (!isRotating) {
       targetPosition.current.copy(positions.pos);
@@ -63,18 +79,27 @@ const CameraController: React.FC<CameraControllerProps> = ({ viewMode, isRotatin
     if (viewMode === 'free') return;
 
     if (isAnimating.current && controlsRef.current) {
-      rotationProgress.current = Math.min(1, rotationProgress.current + delta * 1.5);
+      rotationProgress.current = Math.min(1, rotationProgress.current + delta * 1.2);
       const t = rotationProgress.current;
       const easeT = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
-      camera.position.lerpVectors(startPosition.current, endPosition.current, easeT);
+      tempSpherical.current.theta = startSpherical.current.theta + (endSpherical.current.theta - startSpherical.current.theta) * easeT;
+      tempSpherical.current.phi = startSpherical.current.phi + (endSpherical.current.phi - startSpherical.current.phi) * easeT;
+      tempSpherical.current.radius = startSpherical.current.radius + (endSpherical.current.radius - startSpherical.current.radius) * easeT;
+
+      tempVector.current.setFromSpherical(tempSpherical.current);
       controlsRef.current.target.lerpVectors(startTarget.current, endTarget.current, easeT);
+      camera.position.copy(controlsRef.current.target).add(tempVector.current);
+      
       controlsRef.current.update();
 
       if (rotationProgress.current >= 1) {
         isAnimating.current = false;
-        targetPosition.current.copy(endPosition.current);
-        targetTarget.current.copy(endTarget.current);
+        const finalPositions = getViewPositions(viewMode);
+        if (finalPositions) {
+          targetPosition.current.copy(finalPositions.pos);
+          targetTarget.current.copy(finalPositions.target);
+        }
       }
     } else if (controlsRef.current && !isAnimating.current) {
       camera.position.lerp(targetPosition.current, delta * 3);
@@ -83,6 +108,8 @@ const CameraController: React.FC<CameraControllerProps> = ({ viewMode, isRotatin
     }
   });
 
+  const polarLimits = getPolarAngleLimits();
+
   return (
     <OrbitControls
       ref={controlsRef}
@@ -90,8 +117,8 @@ const CameraController: React.FC<CameraControllerProps> = ({ viewMode, isRotatin
       dampingFactor={0.05}
       minDistance={5}
       maxDistance={30}
-      maxPolarAngle={viewMode === 'top' ? Math.PI / 12 : Math.PI / 2.1}
-      minPolarAngle={viewMode === 'top' ? 0 : Math.PI / 6}
+      maxPolarAngle={polarLimits.max}
+      minPolarAngle={polarLimits.min}
       enablePan={false}
       enableRotate={viewMode === 'free'}
     />
