@@ -53,6 +53,22 @@ const CameraController: React.FC<CameraControllerProps> = ({ viewMode, isRotatin
     return { min: Math.PI / 6, max: Math.PI / 2.1 };
   };
 
+  const getEnableRotate = () => {
+    if (isAnimating.current || isRotating) {
+      return true;
+    }
+    return viewMode === 'free';
+  };
+
+  const syncControlsState = () => {
+    if (!controlsRef.current) return;
+    const offset = tempVector.current.copy(camera.position).sub(controlsRef.current.target);
+    tempSpherical.current.setFromVector3(offset);
+    controlsRef.current.spherical.theta = tempSpherical.current.theta;
+    controlsRef.current.spherical.phi = tempSpherical.current.phi;
+    controlsRef.current.update();
+  };
+
   useEffect(() => {
     const positions = getViewPositions(viewMode);
     if (!positions) return;
@@ -100,6 +116,7 @@ const CameraController: React.FC<CameraControllerProps> = ({ viewMode, isRotatin
           targetPosition.current.copy(finalPositions.pos);
           targetTarget.current.copy(finalPositions.target);
         }
+        syncControlsState();
       }
     } else if (controlsRef.current && !isAnimating.current) {
       camera.position.lerp(targetPosition.current, delta * 3);
@@ -109,6 +126,7 @@ const CameraController: React.FC<CameraControllerProps> = ({ viewMode, isRotatin
   });
 
   const polarLimits = getPolarAngleLimits();
+  const enableRotate = getEnableRotate();
 
   return (
     <OrbitControls
@@ -120,13 +138,15 @@ const CameraController: React.FC<CameraControllerProps> = ({ viewMode, isRotatin
       maxPolarAngle={polarLimits.max}
       minPolarAngle={polarLimits.min}
       enablePan={false}
-      enableRotate={viewMode === 'free'}
+      enableRotate={enableRotate}
     />
   );
 };
 
 const SceneContent: React.FC = () => {
   const { viewMode, currentTurn, gameStatus, isAIThinking, makeAIMove, gameMode, isRotating } = useGameStore();
+  const boardGroupRef = useRef<THREE.Group>(null);
+  const targetRotation = useRef(0);
 
   useEffect(() => {
     if (gameMode === 'single' && currentTurn === 'black' && gameStatus === 'playing' && !isAIThinking) {
@@ -136,6 +156,19 @@ const SceneContent: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [currentTurn, gameStatus, isAIThinking, makeAIMove, gameMode]);
+
+  useEffect(() => {
+    targetRotation.current = viewMode === 'black' ? Math.PI : 0;
+  }, [viewMode]);
+
+  useFrame((_, delta) => {
+    if (boardGroupRef.current) {
+      const currentRot = boardGroupRef.current.rotation.y;
+      const targetRot = targetRotation.current;
+      const diff = targetRot - currentRot;
+      boardGroupRef.current.rotation.y += diff * delta * 5;
+    }
+  });
 
   return (
     <>
@@ -167,9 +200,11 @@ const SceneContent: React.FC = () => {
 
       <Environment preset="studio" />
 
-      <ChessBoard />
-      <ChessPieces />
-      <HintArrow />
+      <group ref={boardGroupRef}>
+        <ChessBoard />
+        <ChessPieces />
+        <HintArrow />
+      </group>
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
         <planeGeometry args={[50, 50]} />
