@@ -283,7 +283,13 @@ export const getValidMoves = (
       }
     }
     
-    if (!isInCheck(newBoard, piece.color, { ...movesHistory[movesHistory.length - 1], from: position, to: move } as Move)) {
+    const simulatedLastMove: Move = {
+      from: position,
+      to: move,
+      piece: piece,
+      notation: ''
+    };
+    if (!isInCheck(newBoard, piece.color, simulatedLastMove)) {
       validMoves.push(move);
     }
   }
